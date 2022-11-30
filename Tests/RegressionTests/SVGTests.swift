@@ -120,6 +120,10 @@ class SVGPathTests: XCTestCase {
   func testPathFillRuleGstate() {
     test(svg: "path_fill_rule_gstate")
   }
+
+  func testSmoothCurveDefs() {
+    test(svg: "path_smooth_curve_defs")
+  }
 }
 
 class SVGGradientTests: XCTestCase {

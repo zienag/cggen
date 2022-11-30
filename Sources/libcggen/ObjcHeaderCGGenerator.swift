@@ -1,13 +1,19 @@
 import CoreGraphics
 
 struct ObjcHeaderCGGenerator: CoreGraphicsGenerator {
-  let params: GenerationParams
+  var params: GenerationParams
+
   func filePreamble() -> String {
     params.imports.renderText() + "\n"
   }
 
   func generateImageFunction(image: Image) -> String {
     params.description(for: image)
+  }
+
+  func generatePathFunction(path: PathRoutine) -> String {
+    let camel = path.identifier.upperCamelCase
+    return "void \(params.prefix)\(camel)Path(CGMutablePathRef path);"
   }
 
   func fileEnding() -> String {

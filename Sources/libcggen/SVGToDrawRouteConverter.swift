@@ -3,7 +3,7 @@ import CoreGraphics
 import Base
 
 enum SVGToDrawRouteConverter {
-  static func convert(document: SVG.Document) throws -> DrawRoutine {
+  static func convert(document: SVG.Document) throws -> DrawDefenitions {
     let boundingRect = document.boundingRect
     let height = boundingRect.size.height
     let gradients = try Dictionary(
@@ -13,6 +13,20 @@ enum SVGToDrawRouteConverter {
       uniqueKeysWithValues: document.children.flatMap(filters(svg:))
     )
     let defenitions = try defs(from: .svg(document))
+
+    let routines: [PathRoutine] = Array(defenitions).compactMap { (id, svgs) in
+      guard id.hasPrefix("cggen."),
+            let svg = svgs.firstAndOnly,
+            let content = pathSegmentsFromSVG(svg)
+      else {
+        return nil
+      }
+      return PathRoutine(
+        identifier: String(id.dropFirst("cggen.".count)),
+        content: content
+      )
+    }
+
     var context = Context(
       objectBoundingBox: boundingRect,
       drawingBounds: boundingRect,
@@ -22,7 +36,7 @@ enum SVGToDrawRouteConverter {
     )
     let initialContextPrep =
       try context.apply(document.presentation, area: boundingRect)
-    return try .init(
+    let routine = try DrawRoutine(
       boundingRect: boundingRect,
       gradients: gradients.mapValues(\.1),
       subroutines: [:],
@@ -30,6 +44,47 @@ enum SVGToDrawRouteConverter {
         document.children.map { try drawstep(svg: $0, ctx: &context)
         }
     )
+    return .init(routines: routine, paths: routines)
+  }
+}
+
+func pathSegmentsFromSVG(_ svg: SVG) -> [PathSegment]? {
+  guard case let .path(path) = svg, let cmds = path.data.d else { return nil }
+  return cmds.flatMap { cmd -> [PathSegment] in
+    switch cmd.kind {
+    case .closepath:
+      return [PathSegment.closePath]
+    case let .moveto(a):
+      return a.map(CGPoint.init(svgPair:)).map(PathSegment.moveTo)
+    case let .lineto(a):
+      return a.map(CGPoint.init(svgPair:)).map(PathSegment.lineTo)
+    case let .horizontalLineto(a):
+      return []
+    case let .verticalLineto(a):
+      return []
+    case let .curveto(a):
+      return a.map {
+        PathSegment.curveTo(
+          .init(svgPair: $0.cp1),
+          .init(svgPair: $0.cp2),
+          .init(svgPair: $0.to)
+        )
+      }
+    case let .smoothCurveto(a):
+      return a.map {
+        PathSegment.curveTo(
+          .zero,
+          .init(svgPair: $0.cp2),
+          .init(svgPair: $0.to)
+        )
+      }
+    case let .quadraticBezierCurveto(a):
+      return []
+    case let .smoothQuadraticBezierCurveto(a):
+      return []
+    case let .ellipticalArc(a):
+      return []
+    }
   }
 }
 
@@ -755,8 +810,8 @@ private func filters(svg: SVG) throws -> [(String, SVGFilterNode)] {
 
 private func defs(from svg: SVG) throws -> Defenitions {
   var result = Defenitions()
-  if let parent = svg.core?.id {
-    result[parent] = (result[parent] ?? []) + [svg]
+  if let _self = svg.core?.id {
+    result[_self] = (result[_self] ?? []) + [svg]
   }
   if let children = svg.children {
     result = try children.map(defs(from:)).reduce(into: result) {

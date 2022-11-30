@@ -24,6 +24,19 @@ public func runBytecode(
   }
 }
 
+@_cdecl("runPathBytecode")
+public func runBytecode(
+  _ context: CGMutablePath,
+  _ start: UnsafePointer<UInt8>,
+  _ len: Int
+) {
+  do {
+//    try BytecodeRunner.run(context, start, len)
+  } catch let t {
+    assertionFailure("Failed to run bytecode with error: \(t)")
+  }
+}
+
 public enum Error: Swift.Error {
   case outOfBounds(left: Int, required: Int)
   case failedToCreateGradient

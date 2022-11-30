@@ -251,6 +251,40 @@ extension BCRadialGradientDrawingOptions: BytecodeEncodable {
 }
 
 private func generateSteps(
+  steps: [PathSegment],
+  bytecode: inout Bytecode
+) {
+  func encode<T>(
+    _ command: Command,
+    _: T.Type, _ value: T, _ encoder: (T, inout Bytecode) -> Void
+  ) {
+    command >> bytecode
+    encoder(value, &bytecode)
+  }
+
+  steps.forEach { (segment: PathSegment) in
+    switch segment {
+    case let .moveTo(p):
+      encode(.moveTo, PathCommand.MoveToArgs.self, p, >>)
+    case let .curveTo(p1, p2, p3):
+      encode(.curveTo, PathCommand.CurveToArgs.self,
+      BCCubicCurve(control1: p1, control2: p2, to: p3), >>
+      )
+    case let .lineTo(p):
+      encode(.lineTo, PathCommand.LineToArgs.self, (p), >>)
+    case let .appendRectangle(r):
+      encode(.appendRectangle, PathCommand.AppendRectangleArgs.self, (r), >>)
+    case let .appendRoundedRect(rect, rx, ry):
+      encode(.appendRoundedRect, PathCommand.AppendRoundedRectArgs.self, (rect, rx, ry), >>)
+    case let .addArc(center, radius, startAngle, endAngle, clockwise):
+      encode(.addArc, PathCommand.AddArcArgs.self, (center, radius, startAngle, endAngle, clockwise), >>)
+    case .closePath:
+      encode(.closePath, PathCommand.ClosePathArgs.self, (), >>)
+    }
+  }
+}
+
+private func generateSteps(
   steps: [DrawStep],
   context: Context,
   bytecode: inout Bytecode
@@ -493,6 +527,12 @@ private class Context {
   var subroutesIds: [String: UInt32] = [:]
 }
 
+func generatePathBytecode(route: PathRoutine) -> [UInt8] {
+  var bytecode = Bytecode()
+  generateSteps(steps: route.content, bytecode: &bytecode)
+  return bytecode
+}
+
 func generateRouteBytecode(route: DrawRoutine) -> [UInt8] {
   var bytecode = Bytecode()
   generateRoute(route: route, context: Context(), bytecode: &bytecode)
@@ -508,6 +548,7 @@ struct BCCGGenerator: CoreGraphicsGenerator {
     return """
     \(importLine)
     void runBytecode(CGContextRef context, const uint8_t* arr, int len);
+    void runPathBytecode(CGMutablePathRef path, const uint8_t* arr, int len);
 
     """
   }
@@ -525,6 +566,20 @@ struct BCCGGenerator: CoreGraphicsGenerator {
       runBytecode(context, \(bytecodeName), \(bytecode.count));
     }
     """ + params.descriptorLines(for: image).joined(separator: "\n")
+  }
+
+  func generatePathFunction(path: PathRoutine) -> String {
+    let bytecodeName = "\(path.identifier.lowerCamelCase)Bytecode"
+    let bytecode = generatePathBytecode(route: path)
+    let camel = path.identifier.upperCamelCase
+    return """
+    static const uint8_t \(bytecodeName)[] = {
+      \(bytecode.map(\.description).joined(separator: ", "))
+    };
+    void \(params.prefix)\(camel)Path(CGMutablePathRef path) {
+      runPathBytecode(path, \(bytecodeName), \(bytecode.count));
+    }
+    """
   }
 
   func fileEnding() -> String {

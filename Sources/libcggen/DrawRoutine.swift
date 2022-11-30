@@ -3,6 +3,11 @@ import Foundation
 
 import Base
 
+struct DrawDefenitions {
+  var routines: DrawRoutine
+  var paths: [PathRoutine]
+}
+
 typealias RGBACGColor = RGBAColor<CGFloat>
 typealias RGBCGColor = RGBColor<CGFloat>
 
@@ -48,6 +53,7 @@ enum DrawStep {
   case saveGState
   case restoreGState
 
+  // case pathSegment(PathSegment)
   case moveTo(CGPoint)
   case curveTo(CGPoint, CGPoint, CGPoint)
   case lineTo(CGPoint)
@@ -140,4 +146,25 @@ struct DrawRoutine {
     self.subroutines = subroutines
     self.steps = steps
   }
+}
+
+struct PathRoutine {
+  var identifier: String
+  var content: [PathSegment]
+}
+
+enum PathSegment {
+  case moveTo(CGPoint)
+  case curveTo(CGPoint, CGPoint, CGPoint)
+  case lineTo(CGPoint)
+  case appendRectangle(CGRect)
+  case appendRoundedRect(CGRect, rx: CGFloat, ry: CGFloat)
+  case addArc(
+    center: CGPoint,
+    radius: CGFloat,
+    startAngle: CGFloat,
+    endAngle: CGFloat,
+    clockwise: Bool
+  )
+  case closePath
 }

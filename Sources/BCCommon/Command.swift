@@ -194,3 +194,31 @@ public enum Command: UInt8 {
   case endTransparencyLayer
   public typealias EndTransparencyLayerArgs = NoArgs
 }
+
+public enum PathCommand: UInt8 {
+  public typealias NoArgs = ()
+
+  case moveTo
+  public typealias MoveToArgs = CGPoint
+
+  case curveTo
+  public typealias CurveToArgs = BCCubicCurve
+
+  case lineTo
+  public typealias LineToArgs = (CGPoint)
+
+  case appendRectangle
+  public typealias AppendRectangleArgs = (CGRect)
+
+  case appendRoundedRect
+  public typealias AppendRoundedRectArgs = (CGRect, rx: CGFloat, ry: CGFloat)
+
+  case addArc
+  public typealias AddArcArgs = (
+    center: CGPoint, radius: CGFloat,
+    startAngle: CGFloat, endAngle: CGFloat, clockwise: Bool
+  )
+
+  case closePath
+  public typealias ClosePathArgs = NoArgs
+}

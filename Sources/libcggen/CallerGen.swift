@@ -1,6 +1,11 @@
 import Foundation
 
 struct ObjcCallerGen: CoreGraphicsGenerator {
+  func generatePathFunction(path: PathRoutine) -> String {
+    // Not needed
+    ""
+  }
+
   let headerImportPath: String
   let scale: CGFloat
   let allowAntialiasing: Bool

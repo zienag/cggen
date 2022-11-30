@@ -53,7 +53,7 @@ public func runCggen(with args: Args) throws {
   Logger.shared.setLevel(level: args.verbose)
   var stopwatch = StopWatch()
   let files = args.files.map(URL.init(fileURLWithPath:))
-  let images = try generateImages(from: files)
+  let outputs = try generateImages(from: files)
 
   log("Parsed in: \(stopwatch.reset())")
   let objcPrefix = args.objcPrefix ?? ""
@@ -66,7 +66,7 @@ public func runCggen(with args: Args) throws {
 
   if let objcHeaderPath = args.objcHeader {
     let headerGenerator = ObjcHeaderCGGenerator(params: params)
-    let fileStr = headerGenerator.generateFile(images: images)
+    let fileStr = headerGenerator.generateFile(images: outputs)
     try fileStr.write(
       toFile: objcHeaderPath,
       atomically: true,
@@ -80,7 +80,7 @@ public func runCggen(with args: Args) throws {
       params: params,
       headerImportPath: args.objcHeaderImportPath
     )
-    let fileStr = implGenerator.generateFile(images: images)
+    let fileStr = implGenerator.generateFile(images: outputs)
     try fileStr.write(
       toFile: objcImplPath,
       atomically: true,
@@ -107,7 +107,7 @@ public func runCggen(with args: Args) throws {
       prefix: objcPrefix,
       outputPath: pngOutputPath
     )
-    let fileStr = callerGenerator.generateFile(images: images)
+    let fileStr = callerGenerator.generateFile(images: outputs)
     try fileStr.write(
       toFile: objcCallerPath,
       atomically: true,
@@ -123,7 +123,7 @@ public enum Error: Swift.Error {
   case imageGenerationFailed([(URL, Swift.Error)])
 }
 
-private typealias Generator = (URL) throws -> DrawRoutine
+private typealias Generator = (URL) throws -> DrawDefenitions
 
 private let pdfAndSvgGenerator: Generator = {
   switch $0.pathExtension {
@@ -133,7 +133,10 @@ private let pdfAndSvgGenerator: Generator = {
       pages.count == 1,
       Error.multiplePagedPdfNotSupported(file: $0.absoluteString)
     )
-    return try PDFToDrawRouteConverter.convert(page: pages[0])
+    return try .init(
+      routines: PDFToDrawRouteConverter.convert(page: pages[0]),
+      paths: []
+    )
   case "svg":
     let svg = try SVGParser.root(from: Data(contentsOf: $0))
     return try SVGToDrawRouteConverter.convert(document: svg)
@@ -152,8 +155,8 @@ func flattenDrawSteps(_ steps: [DrawStep]) -> [DrawStep] {
 private func flattenDrawRoute(from generator: @escaping Generator) -> Generator {
   { url in
     var route = try generator(url)
-    route.steps = flattenDrawSteps(route.steps)
-    route.subroutines = route.subroutines.mapValues { modified($0) {
+    route.routines.steps = flattenDrawSteps(route.routines.steps)
+    route.routines.subroutines = route.routines.subroutines.mapValues { modified($0) {
       $0.steps = flattenDrawSteps($0.steps)
     }}
     return route
@@ -165,8 +168,8 @@ private let generator = flattenDrawRoute(from: pdfAndSvgGenerator)
 private func generateImages(
   from files: [URL],
   generator: @escaping Generator = generator
-) throws -> [Image] {
-  let generator: (URL) -> Result<DrawRoutine, Swift.Error> = { url in
+) throws -> [Outputs] {
+  let generator: (URL) -> Result<DrawDefenitions, Swift.Error> = { url in
     Result(catching: { try generator(url) })
   }
 
@@ -186,14 +189,17 @@ private func generateImages(
   }
 
   return try generated.map {
-    Image(
-      name: $0.0.deletingPathExtension().lastPathComponent,
-      route: try $0.1.get()
+    try .init(
+      mainImage: Image(
+        name: $0.0.deletingPathExtension().lastPathComponent,
+        route: $0.1.get().routines
+      ),
+      path: $0.1.get().paths
     )
   }
 }
 
 public func getBytecode(from file: URL) throws -> [UInt8] {
   let img = try generateImages(from: [file])[0]
-  return generateRouteBytecode(route: img.route)
+  return generateRouteBytecode(route: img.mainImage.route)
 }
