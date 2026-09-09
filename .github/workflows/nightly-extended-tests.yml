@@ -47,14 +47,14 @@ jobs:
         xcode-version: latest-stable
 
     - name: Build
-      run: swift build --enable-experimental-prebuilts
+      run: swift build -Xswiftc -warnings-as-errors --enable-experimental-prebuilts
 
     - name: Run gradient determinism test multiple times
       run: |
         echo "Running gradient determinism test 5 times without deterministic hashing..."
         for i in {1..5}; do
           echo "Run $i of 5"
-          swift test --filter "gradientDeterminismGeneration" || {
+          swift test -Xswiftc -warnings-as-errors --filter "gradientDeterminismGeneration" || {
             echo "❌ Test failed on run $i"
             exit 1
           }
@@ -64,7 +64,7 @@ jobs:
     - name: Run all tests including extended tests
       run: |
         echo "Running all tests including extended tests..."
-        CGGEN_EXTENDED_TESTS=1 swift test --parallel || {
+        CGGEN_EXTENDED_TESTS=1 swift test -Xswiftc -warnings-as-errors --parallel || {
           echo "❌ Tests failed"
           exit 1
         }

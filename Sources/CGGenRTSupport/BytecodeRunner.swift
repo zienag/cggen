@@ -1,6 +1,6 @@
 import CGGenBytecode
 import CGGenBytecodeDecoding
-@preconcurrency import CoreGraphics
+import CoreGraphics
 import Foundation
 
 public func runBytecode(
@@ -513,8 +513,13 @@ private struct GState {
       self.alpha = alpha
     }
 
-    static let black = Self(color: .init(r: 0, g: 0, b: 0), alpha: 1)
-    static let none = Self(dye: nil, alpha: 1)
+    static var black: Self {
+      Self(color: .init(r: 0, g: 0, b: 0), alpha: 1)
+    }
+
+    static var none: Self {
+      Self(dye: nil, alpha: 1)
+    }
   }
 
   var fillRule: BCFillRule
@@ -523,12 +528,14 @@ private struct GState {
   var dash: DashPattern
   var fillColorSpace: CGColorSpace
 
-  static let `default` = Self(
-    fillRule: .winding,
-    fill: .black, stroke: .none,
-    dash: .init(phase: 0, lengths: nil),
-    fillColorSpace: CGColorSpaceCreateDeviceRGB()
-  )
+  static var `default`: Self {
+    Self(
+      fillRule: .winding,
+      fill: .black, stroke: .none,
+      dash: .init(phase: 0, lengths: nil),
+      fillColorSpace: CGColorSpaceCreateDeviceRGB()
+    )
+  }
 }
 
 private struct CommandExecution {
@@ -575,7 +582,7 @@ private struct CommandExecution {
   }
 
   func appendRoundedRect(_ args: DrawCommand.AppendRoundedRectArgs) {
-    let path = CGPath(
+    let path = unsafe CGPath(
       roundedRect: args.0,
       cornerWidth: args.rx,
       cornerHeight: args.ry,
@@ -947,10 +954,7 @@ private struct ExtendedContext {
     case let .color(color):
       cg.setFillColor(color, alpha: paint.alpha)
     case .gradient, nil:
-      cg.setFillColor(CGColor(
-        colorSpace: CGColorSpaceCreateDeviceRGB(),
-        components: [0, 0, 0, 0]
-      )!)
+      cg.setFillColor(red: 0, green: 0, blue: 0, alpha: 0)
     }
   }
 
@@ -960,10 +964,7 @@ private struct ExtendedContext {
     case let .color(color):
       cg.setStrokeColor(color, alpha: paint.alpha)
     case .gradient, nil:
-      cg.setStrokeColor(CGColor(
-        colorSpace: CGColorSpaceCreateDeviceRGB(),
-        components: [0, 0, 0, 0]
-      )!)
+      cg.setStrokeColor(red: 0, green: 0, blue: 0, alpha: 0)
     }
   }
 
@@ -1085,13 +1086,16 @@ private struct ExtendedContext {
 
   mutating func drawShadow(_ shadow: BCShadow) {
     let ctm = cg.ctm
-    let cs = gstate.fillColorSpace
     let a = ctm.a
     let c = ctm.c
     let scaleX = sqrt(a * a + c * c)
     let offset = shadow.offset.applying(ctm)
     let blur = floor(shadow.blur * scaleX + 0.5)
-    let color = CGColor(colorSpace: cs, components: shadow.color.components)
+    // Device RGB consumes exactly the four RGBA components supplied here.
+    let color = unsafe CGColor(
+      colorSpace: CGColorSpaceCreateDeviceRGB(),
+      components: shadow.color.components
+    )
     cg.setShadow(offset: offset, blur: blur, color: color)
   }
 }
@@ -1141,10 +1145,14 @@ extension CGGradient {
     _ bc: BCGradient,
     colorSpace cs: CGColorSpace
   ) throws -> CGGradient {
+    guard cs.model == .rgb, cs.numberOfComponents == 3 else {
+      throw Error.failedToCreateGradient
+    }
     let sz = bc.count
     let colors = bc.flatMap(\.color.components)
     let locations = bc.map(\.location)
-    guard let gradient = CGGradient(
+    // Each stop supplies four RGBA components and one location.
+    guard let gradient = unsafe CGGradient(
       colorSpace: cs,
       colorComponents: colors,
       locations: locations,

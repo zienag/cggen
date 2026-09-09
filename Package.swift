@@ -52,7 +52,8 @@ let package = Package(
     .target(
       name: "CGGenRTSupport",
       dependencies: ["CGGenBytecode", "CGGenBytecodeDecoding"],
-      exclude: ["README.md"]
+      exclude: ["README.md"],
+      swiftSettings: [.strictMemorySafety()]
     ),
 
     // Build tool plugin: auto-generates code from SVG/PDF assets

@@ -35,7 +35,8 @@ extension CGImage {
     let bytesPerRow = Int(scaledTargetSize.width) * 4
     let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
 
-    guard let context = CGContext(
+    // Core Graphics allocates and owns the pixel buffer when data is nil.
+    guard let context = unsafe CGContext(
       data: nil,
       width: Int(scaledTargetSize.width),
       height: Int(scaledTargetSize.height),

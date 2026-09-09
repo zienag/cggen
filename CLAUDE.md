@@ -37,6 +37,8 @@ open Demo/Demo.xcodeproj
 - Test samples: underscore-separated lowercase (e.g., `gradient_with_alpha.svg`)
 
 ## IMPORTANT: Testing Requirements
+- Build and test invocations use `-Xswiftc -warnings-as-errors` locally and in CI (`-xcconfig .github/WarningsAsErrors.xcconfig` for Xcode); strict memory safety is enabled in package settings without imposing warnings-as-errors on consumers.
+- Runtime changes preserve the macOS 14 and iOS 13 deployment targets.
 - **ALWAYS run `swift test` after making code changes**
 - **NEVER consider a task complete without running tests**
 - **Before marking any coding task as complete:**
@@ -177,6 +179,7 @@ The project uses swift-parsing library with custom operators:
 - [docs/api-design-considerations.md](docs/api-design-considerations.md) - Design rationale
 - [docs/adding-new-attribute.md](docs/adding-new-attribute.md) - Contributing guide for SVG attributes
 - [docs/path-generation.md](docs/path-generation.md) - Path extraction feature guide
+- [docs/bytecode-memory-safety.md](docs/bytecode-memory-safety.md) - Storage ownership, unsafe boundaries, and strict build checks
 
 ### Key File Locations
 - **CLI Entry**: `Sources/cggen/CGGen.swift`

@@ -17,8 +17,8 @@ jobs:
 
     - name: Update snapshots
       run: |
-        swift build --enable-experimental-prebuilts
-        CGGEN_EXTENDED_TESTS=1 SNAPSHOT_TESTING_RECORD=failed swift test || true
+        swift build --build-tests -Xswiftc -warnings-as-errors --enable-experimental-prebuilts
+        CGGEN_EXTENDED_TESTS=1 SNAPSHOT_TESTING_RECORD=failed swift test --skip-build -Xswiftc -warnings-as-errors || true
 
     - name: Create PR
       run: |

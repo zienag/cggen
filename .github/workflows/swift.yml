@@ -20,12 +20,12 @@ jobs:
     - name: Enable Xcode prebuilts
       run: defaults write com.apple.dt.Xcode IDEPackageEnablePrebuilts YES
     - name: Build
-      run: swift build -v --enable-experimental-prebuilts
+      run: swift build -Xswiftc -warnings-as-errors -v --enable-experimental-prebuilts
     - name: Run tests
-      run: SWIFT_DETERMINISTIC_HASHING=1 swift test -v --parallel
+      run: SWIFT_DETERMINISTIC_HASHING=1 swift test -Xswiftc -warnings-as-errors -v --parallel
     - name: Build Demo for macOS
-      run: xcodebuild -project Demo/Demo.xcodeproj -scheme Demo -configuration Release -destination 'platform=macOS' -skipMacroValidation build
+      run: xcodebuild -xcconfig .github/WarningsAsErrors.xcconfig -project Demo/Demo.xcodeproj -scheme Demo -configuration Release -destination 'platform=macOS' -skipMacroValidation build
     - name: Build Demo for iOS Simulator
-      run: xcodebuild -project Demo/Demo.xcodeproj -scheme Demo -configuration Release -destination 'generic/platform=iOS Simulator' -skipMacroValidation build
+      run: xcodebuild -xcconfig .github/WarningsAsErrors.xcconfig -project Demo/Demo.xcodeproj -scheme Demo -configuration Release -destination 'generic/platform=iOS Simulator' -skipMacroValidation build
     - name: Build CGGenRuntime for iOS
-      run: xcodebuild -scheme CGGenRuntime -destination 'generic/platform=iOS' -skipMacroValidation build -quiet
+      run: xcodebuild -xcconfig .github/WarningsAsErrors.xcconfig -scheme CGGenRuntime -destination 'generic/platform=iOS' IPHONEOS_DEPLOYMENT_TARGET=13.0 -skipMacroValidation build -quiet
