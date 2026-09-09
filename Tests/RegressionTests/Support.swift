@@ -46,7 +46,8 @@ func clang(
   out: URL?,
   files: [URL],
   syntaxOnly: Bool = false,
-  frameworks: [String]
+  frameworks: [String],
+  additionalArguments: [String] = []
 ) throws {
   let task = Process()
   task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -64,7 +65,8 @@ func clang(
     "-fmodules",
     "-isysroot",
     sdkPath,
-  ] + outArgs + frameworkArgs + syntaxOnlyArg + files.map(\.path)
+  ] + outArgs + frameworkArgs + syntaxOnlyArg + additionalArguments + files
+    .map(\.path)
 
   try task.run()
   task.waitUntilExit()

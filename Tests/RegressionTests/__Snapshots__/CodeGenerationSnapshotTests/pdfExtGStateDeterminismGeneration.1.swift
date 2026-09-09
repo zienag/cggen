@@ -9,8 +9,7 @@ extension Drawing {
   static let extgstateMultipleParams = Drawing(
     width: 200.0,
     height: 200.0,
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 41,
+    storage: bytecodeStorage,
     startIndex: 0,
     endIndex: 40
   )
@@ -23,3 +22,8 @@ private let mergedBytecodes: [UInt8] = [
   0x00, 0xA0, 0x41, 0x00, 0x00, 0x20, 0x43, 0x00, 0x00, 0x20, 0x43, 0x13,
   0x00, 0x62, 0x76, 0x78, 0x24
 ]
+
+private let bytecodeStorage = BytecodeStorage(
+  bytes: mergedBytecodes,
+  decompressedSize: 41
+)

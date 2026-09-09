@@ -43,6 +43,11 @@ func generateSwiftFile(
   private let mergedBytecodes: [UInt8] = [
   \(formatBytecodeArray(unifiedBytecodeData.compressedBytecode))
   ]
+
+  private let bytecodeStorage = BytecodeStorage(
+    bytes: mergedBytecodes,
+    decompressedSize: \(unifiedBytecodeData.decompressedSize)
+  )
   """)
 
   return sections.joined(separator: "\n\n") + "\n"
@@ -99,8 +104,7 @@ private func generateImageFunctions(unifiedBytecodeData: UnifiedBytecodeData)
         static let \(propertyName) = Drawing(
           width: \(size.width),
           height: \(size.height),
-          bytecodeArray: mergedBytecodes,
-          decompressedSize: \(unifiedBytecodeData.decompressedSize),
+          storage: bytecodeStorage,
           startIndex: \(position.start),
           endIndex: \(position.end)
         )
@@ -123,8 +127,7 @@ private func generatePathFunctions(unifiedBytecodeData: UnifiedBytecodeData)
       let propertyName = path.id.lowerCamelCase
       return """
         static let \(propertyName) = Drawing.Path(
-          bytecodeArray: mergedBytecodes,
-          decompressedSize: \(unifiedBytecodeData.decompressedSize),
+          storage: bytecodeStorage,
           startIndex: \(position.start),
           endIndex: \(position.end)
         )

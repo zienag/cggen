@@ -45,103 +45,30 @@ struct SwiftCompilationTests {
       )
     )
 
-    // Read the generated code and remove the CGGenRuntimeSupport import
-    let generatedCode = try String(contentsOf: swiftFile)
-    let codeWithoutImport = generatedCode
-      .replacingOccurrences(
-        of: "@_spi(Generator) import CGGenRTSupport\n",
-        with: ""
-      )
-      .replacingOccurrences(
-        of: "typealias Drawing = CGGenRTSupport.Drawing\n",
-        with: ""
-      )
+    let generatedCode = try String(contentsOf: swiftFile, encoding: .utf8)
+    let testProgram = generatedCode + """
 
-    // Create a test program that imports and uses the generated code
-    let testProgram = """
-    import CoreGraphics
-    import Foundation
-
-    // Include generated code (without CGGenRuntimeSupport import)
-    \(codeWithoutImport)
-
-    // Test that we can instantiate the generated types and call functions
     public func testGeneratedCode() {
-      // Test that Drawing instances are created correctly
-      let _ = Drawing.shapes
-      let _ = Drawing.lines
-
-      // Test that Drawing is Equatable and Hashable
-      if Drawing.shapes == Drawing.shapes {
-        print("Equatable works")
-      }
-
-      var drawingSet = Set<Drawing>()
-      drawingSet.insert(Drawing.shapes)
-      drawingSet.insert(Drawing.lines)
+      let _: Set<Drawing> = [.shapes, .lines]
     }
     """
-
     let testFile = tmpdir.appendingPathComponent("test.swift")
     try testProgram.write(to: testFile, atomically: true, encoding: .utf8)
 
-    // Create a mock for the @_silgen_name functions and CGGenRuntimeSupport
-    let mockRuntime = """
-    // Mock runtime functions for testing
-    import CoreGraphics
-
-    // Mock CGGenRuntimeSupport module
-    public struct Drawing: Equatable, Hashable {
-      internal var width: Float
-      internal var height: Float
-      internal var bytecode: BytecodeProcedure
-
-      public var size: CGSize {
-        CGSize(width: CGFloat(width), height: CGFloat(height))
-      }
-
-      internal struct BytecodeProcedure: Equatable, Hashable {
-        internal var bytecodeArray: [UInt8]
-        internal var decompressedSize: Int32
-        internal var startIndex: Int32
-        internal var endIndex: Int32
-      }
-
-      public init(
-        width: Float,
-        height: Float,
-        bytecodeArray: [UInt8],
-        decompressedSize: Int32,
-        startIndex: Int32,
-        endIndex: Int32
-      ) {
-        self.width = width
-        self.height = height
-        self.bytecode = BytecodeProcedure(
-          bytecodeArray: bytecodeArray,
-          decompressedSize: decompressedSize,
-          startIndex: startIndex,
-          endIndex: endIndex
-        )
-      }
-    }
-    """
-
-    let mockRuntimeFile = tmpdir.appendingPathComponent("MockRuntime.swift")
-    try mockRuntime.write(
-      to: mockRuntimeFile,
-      atomically: true,
-      encoding: .utf8
-    )
-
-    // Compile both files together
+    let products = Bundle(for: RuntimeModuleLocator.self).bundleURL
+      .deletingLastPathComponent()
+    let moduleDirectory = try #require([
+      products.appendingPathComponent("Modules"), products,
+    ].first {
+      fm
+        .fileExists(atPath: $0
+          .appendingPathComponent("CGGenRTSupport.swiftmodule").path)
+    })
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/swiftc")
     process.arguments = [
-      "-parse-as-library", // Parse as library to avoid needing main
-      "-typecheck", // Type check the code
-      mockRuntimeFile.path,
-      testFile.path,
+      "-parse-as-library", "-typecheck", "-warnings-as-errors",
+      "-I", moduleDirectory.path, testFile.path,
     ]
 
     let pipe = Pipe()
@@ -149,13 +76,12 @@ struct SwiftCompilationTests {
     process.standardOutput = pipe
 
     try process.run()
-    process.waitUntilExit()
-
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
     let output = String(data: data, encoding: .utf8) ?? ""
 
     if process.terminationStatus != 0 {
-      let generatedCode = try String(contentsOf: swiftFile)
+      let generatedCode = try String(contentsOf: swiftFile, encoding: .utf8)
       Issue.record("""
       Swift compilation failed with status \(process.terminationStatus)
       Output: \(output)
@@ -168,3 +94,5 @@ struct SwiftCompilationTests {
     #expect(process.terminationStatus == 0)
   }
 }
+
+private final class RuntimeModuleLocator: NSObject {}

@@ -9,24 +9,21 @@ extension Drawing {
   static let circle = Drawing(
     width: 50.0,
     height: 50.0,
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 275,
+    storage: bytecodeStorage,
     startIndex: 0,
     endIndex: 65
   )
   static let square = Drawing(
     width: 40.0,
     height: 40.0,
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 275,
+    storage: bytecodeStorage,
     startIndex: 66,
     endIndex: 139
   )
   static let star = Drawing(
     width: 60.0,
     height: 60.0,
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 275,
+    storage: bytecodeStorage,
     startIndex: 140,
     endIndex: 274
   )
@@ -48,3 +45,8 @@ private let mergedBytecodes: [UInt8] = [
   0x01, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x76, 0x78,
   0x24
 ]
+
+private let bytecodeStorage = BytecodeStorage(
+  bytes: mergedBytecodes,
+  decompressedSize: 275
+)

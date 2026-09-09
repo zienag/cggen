@@ -9,8 +9,7 @@ extension Drawing {
   static let paths = Drawing(
     width: 100.0,
     height: 100.0,
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 369,
+    storage: bytecodeStorage,
     startIndex: 0,
     endIndex: 63
   )
@@ -21,20 +20,17 @@ extension Drawing {
 
 extension Drawing.Path {
   static let simpleArrow = Drawing.Path(
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 369,
+    storage: bytecodeStorage,
     startIndex: 64,
     endIndex: 117
   )
   static let simpleHeart = Drawing.Path(
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 369,
+    storage: bytecodeStorage,
     startIndex: 118,
     endIndex: 277
   )
   static let simpleStar = Drawing.Path(
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 369,
+    storage: bytecodeStorage,
     startIndex: 278,
     endIndex: 368
   )
@@ -61,3 +57,8 @@ private let mergedBytecodes: [UInt8] = [
   0x07, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x76, 0x78,
   0x24
 ]
+
+private let bytecodeStorage = BytecodeStorage(
+  bytes: mergedBytecodes,
+  decompressedSize: 369
+)

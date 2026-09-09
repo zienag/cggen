@@ -28,11 +28,25 @@ func generateObjCImplementationFile(
   }
 
   sections.append("""
-  void runMergedBytecode(CGContextRef context, const uint8_t* arr, int decompressedLen, int compressedLen, int startIndex, int endIndex);
-  void runPathBytecode(CGMutablePathRef path, const uint8_t* arr, int len);
-  void runMergedPathBytecode(CGMutablePathRef path, const uint8_t* arr, int decompressedLen, int compressedLen, int startIndex, int endIndex);
+  #import <dispatch/dispatch.h>
+
+  const void *CGGenCreateBytecodeStorage(const uint8_t *bytes, intptr_t count, intptr_t decompressedSize);
+  void CGGenDrawBytecode(CGContextRef context, const void *storage, intptr_t startIndex, intptr_t endIndex);
+  void CGGenApplyPathBytecode(CGMutablePathRef path, const void *storage, intptr_t startIndex, intptr_t endIndex);
 
   static const uint8_t mergedBytecodes[\(unifiedBytecodeData.compressedSize)];
+
+  static const void *bytecodeStorage(void) {
+    static const void *storage;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+      storage = CGGenCreateBytecodeStorage(mergedBytecodes, \(
+        unifiedBytecodeData
+          .compressedSize
+  ), \(unifiedBytecodeData.decompressedSize));
+    });
+    return storage;
+  }
   """)
 
   // Image functions
@@ -113,9 +127,7 @@ private func generateImageFunctions(
       generateImageFunction(
         params: params,
         image: image,
-        position: position,
-        decompressedSize: unifiedBytecodeData.decompressedSize,
-        compressedSize: unifiedBytecodeData.compressedSize
+        position: position
       )
     }.joined(separator: "\n\n")
 }
@@ -123,17 +135,14 @@ private func generateImageFunctions(
 private func generateImageFunction(
   params: GenerationParams,
   image: Image,
-  position: (start: Int, end: Int),
-  decompressedSize: Int,
-  compressedSize: Int
+  position: (start: Int, end: Int)
 ) -> String {
   """
   \(params.style.drawingHandlerPrefix)void \(params.prefix)Draw\(
     image.name.upperCamelCase
   )ImageInContext(CGContextRef context) {
-    runMergedBytecode(context, mergedBytecodes, \(decompressedSize), \(
-      compressedSize
-    ), \(position.start), \(position.end));
+    CGGenDrawBytecode(context, bytecodeStorage(), \(position.start), \(position
+    .end));
   }
   """ + params.descriptorLines(for: image).joined(separator: "\n")
 }
@@ -149,11 +158,8 @@ private func generatePathFunctions(
       let camel = path.id.upperCamelCase
       return """
       void \(params.prefix)\(camel)Path(CGMutablePathRef path) {
-        runMergedPathBytecode(path, mergedBytecodes, \(
-          unifiedBytecodeData.decompressedSize
-        ), \(unifiedBytecodeData.compressedSize), \(
-        position.start
-      ), \(position.end));
+        CGGenApplyPathBytecode(path, bytecodeStorage(), \(position
+        .start), \(position.end));
       }
       """
     }.joined(separator: "\n\n")

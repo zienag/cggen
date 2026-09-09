@@ -9,8 +9,7 @@ extension Drawing {
   static let gradientDeterminismTest = Drawing(
     width: 50.0,
     height: 50.0,
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 408,
+    storage: bytecodeStorage,
     startIndex: 0,
     endIndex: 407
   )
@@ -34,3 +33,8 @@ private let mergedBytecodes: [UInt8] = [
   0x06, 0x20, 0x87, 0x6E, 0x42, 0xF4, 0xE2, 0x18, 0x01, 0x06, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x76, 0x78, 0x24
 ]
+
+private let bytecodeStorage = BytecodeStorage(
+  bytes: mergedBytecodes,
+  decompressedSize: 408
+)

@@ -9,8 +9,7 @@ extension Drawing {
   static let pathsAndImages = Drawing(
     width: 50.0,
     height: 50.0,
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 201,
+    storage: bytecodeStorage,
     startIndex: 0,
     endIndex: 80
   )
@@ -21,20 +20,17 @@ extension Drawing {
 
 extension Drawing.Path {
   static let diamond = Drawing.Path(
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 201,
+    storage: bytecodeStorage,
     startIndex: 81,
     endIndex: 117
   )
   static let hexagon = Drawing.Path(
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 201,
+    storage: bytecodeStorage,
     startIndex: 118,
     endIndex: 172
   )
   static let triangle = Drawing.Path(
-    bytecodeArray: mergedBytecodes,
-    decompressedSize: 201,
+    storage: bytecodeStorage,
     startIndex: 173,
     endIndex: 200
   )
@@ -53,3 +49,8 @@ private let mergedBytecodes: [UInt8] = [
   0x37, 0xF4, 0x38, 0x5C, 0xF3, 0x30, 0x1C, 0xE3, 0x20, 0x42, 0x07, 0x06,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x76, 0x78, 0x24
 ]
+
+private let bytecodeStorage = BytecodeStorage(
+  bytes: mergedBytecodes,
+  decompressedSize: 201
+)
